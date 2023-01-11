@@ -14,25 +14,31 @@
     </div>
   </div>
   <div class="container-fluid">
-    <?php if ($error_warning) { ?>
-    <div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> <?php echo $error_warning; ?>
-      <button type="button" class="close" data-dismiss="alert">&times;</button>
-    </div>
-    <?php } ?>
     <div class="panel panel-default">
       <div class="panel-heading">
         <h3 class="panel-title"><i class="fa fa-pencil"></i> <?php echo $text_edit ?></h3>
       </div>
-      <div class="panel-body">
+      <div class="panel-body container">
         <form action="<?php echo $action ?>" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
-			<?php echo '<pre>'.print_r($categories,1).'</pre>'; ?>
           <!-- Настройка: "Формирования файла" -->
+		  <div class="col-12"><?// echo '<pre>'.print_r($categories,1).'</pre>'; ?></div>
           <div class="form-group">
-            <label class="col-sm-2 control-label" for="input-status"><?php echo $entry_filepath ?></label>
-            <div class="col-sm-10">
- 
+			<div class="result col-12">
+				<?php if ($error_warning) { ?>
+					<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> <?php echo $error_warning; ?>
+					  <button type="button" class="close" data-dismiss="alert">&times;</button>
+					</div>
+				<?php } ?>
+			</div>
+			<div class="col-12 form-group">
+				<label class="control-label" for="savePath">Путь сохранения файла:</label>
+				<input type="text" class="form-control" name="savePath" />
+			</div>
+			<?php if (isset($entry_filepath)):?>
+				<label class="col-sm-2 control-label" for="input-status"><?php echo $entry_filepath ?></label>
+			<?php endif;?>
+            <div class="col-sm-12">
 				<button type="submit" class="btn btn-success"><?php echo $entry_run ?></button>
- 
             </div>
           </div>
         </form>

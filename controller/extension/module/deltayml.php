@@ -14,11 +14,13 @@ class ControllerExtensionModuleDeltayml extends Controller {
 	$this->load->model('setting/setting');
 	$this->load->model('catalog/product');
 	$categories = $this->model_extension_module_deltayml->getCategory();
-	$data['filter_category'] = '59';
+	$data['entry_filepath'] = '';
 	foreach ($categories as $key=>$category) {
 		$data['filter_category'] = $category['category_id'];
 		$products = $this->model_extension_module_deltayml->getProducts($data);
 		foreach ($products as $j=>$product) {
+			$products[$j]['attributes'] = $this->model_extension_module_deltayml->getProductAttributes($product['product_id']);
+			$products[$j]['options'] = $this->model_extension_module_deltayml->getProductOptions($product['product_id']);
 			$products[$j]['href'] = $this->url->link('catalog/product', '?product_id=' . $product['product_id']);
 		}
 		$categories[$key]['products'] = $products;
@@ -27,13 +29,19 @@ class ControllerExtensionModuleDeltayml extends Controller {
 	$data['categories'] = $categories;
 	$filepath = '';
 	$data['error_warning'] = '';
-	$data['entry_filepath'] = '';
+	
     // Сохранение настроек модуля, когда пользователь нажал "Создать"
     if ($this->request->server['REQUEST_METHOD'] == 'POST') {
       // Вызываем метод "модели" для сохранения настроек
+	  
+	  if ($this->request->post['savePath']) {
+		$fpath = $this->request->post['savePath'];
+	  } else {
+		$fpath = '';
+	  }
       
 	  // Метод формирования yml файла 
-	  $filepath = $this->Uploadyml();
+	  $filepath = $this->Uploadyml($fpath);
 	  
 	  if ($filepath != '' && isset($filepath)){
 		  
@@ -44,6 +52,7 @@ class ControllerExtensionModuleDeltayml extends Controller {
 		  $this->response->redirect($this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&type=module', true));
 		  $data['entry_filepath'] = $filepath;
 	  } else {
+		$data['entry_filepath'] = '';
 		$this->session->data['error_warning'] = 'Ошибка формирования файла!';
 		$data['error_warning'] = 'Ошибка формирования файла!';
 		$this->response->redirect($this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&type=module', true));
@@ -73,8 +82,8 @@ class ControllerExtensionModuleDeltayml extends Controller {
   }
   
   // формирование yml
-  public function Uploadyml() {
-	$filepath = '';
+  public function Uploadyml($filepath = '') {
+	
 	
 	$this->load->model('extension/module');
 	$this->load->model('extension/module/deltayml');
@@ -84,8 +93,12 @@ class ControllerExtensionModuleDeltayml extends Controller {
 	if (isset($data_file) && !empty($data_file)) {
 		
 		//$this->load->model('setting/setting');
-		
-		$filename = '/storage/YML-'.date("d-m-Y-H-i").'.yml';
+		if ($filepath != '') {
+			$filename = $_SERVER['DOCUMENT_ROOT'].'/'.$filepath.'/YML-'.date("d-m-Y-H-i").'.yml';
+		} else {
+			$filename = $_SERVER['DOCUMENT_ROOT'].'/system/storage/YML-'.date("d-m-Y-H-i").'.yml';
+		}
+
 		
 		$yml = '<?xml version="1.0" encoding="UTF-8"?><yml_catalog date="'.date('Y-m-d').'T'.date('H:i:s').'+03:00"><shop>';
 		$yml .= '<name>'.$this->config->get('config_meta_title').'</name>';
@@ -96,8 +109,8 @@ class ControllerExtensionModuleDeltayml extends Controller {
 		
 			foreach ($data_file['categories'] as $res=>$result):
 			echo '<pre>'.print_r($result['name'],1).' Идёт добавление...</pre>';
-				if ($result['category_parent_id']):
-					$yml .= '<category id="'.$result["category_id"].'" parentId="'.$result["category_parent_id"].'">'.$result["name"].'</category>';
+				if ($result['parent_id']):
+					$yml .= '<category id="'.$result["category_id"].'" parentId="'.$result["parent_id"].'">'.$result["name"].'</category>';
 				else:
 					$yml .= '<category id="'.$result["category_id"].'">'.$result["name"].'</category>';
 				endif;
@@ -107,16 +120,36 @@ class ControllerExtensionModuleDeltayml extends Controller {
 		
 		// offers
 		$yml .= '<offers>';
+		$host = $_SERVER['HTTP_HOST'];
+        $protocol=$_SERVER['PROTOCOL'] = isset($_SERVER['HTTPS']) && !empty($_SERVER['HTTPS']) ? 'https' : 'http';
+		$url_path = $protocol.'://'.$host.'/';
+
 		
 		foreach ($data_file['categories'] as $cat):
 			if ($cat['products']){
-				echo '<pre>'.print_r($cat['products'],1).'</pre>';
 				foreach($cat['products'] as $product):
 					$yml .= '<offer id="'.$product['product_id'].'">';
 						$yml .= '<name>'.$product['name'].'</name>';
-						$yml .= '<vendor>'.$product['description'].'</vendor>';
-						$yml .= '<vendorCode>'.$product['product_id'].'</vendorCode>';
-						$yml .= '<url>'.$product['href'].'</url>';
+						$yml .= '<vendor>'.html_entity_decode($product['name']).'</vendor>';
+						$yml .= '<vendorCode>'.$product['model'].'</vendorCode>';
+						$yml .= '<url>'.$url_path.''.$product['keyword'].'</url>';
+						$yml .= '<price>'.intval($product['price']).'</price>';
+						$yml .= '<currencyId>RUR</currencyId>';
+						$yml .= '<categoryId>'.$product['category_id'].'</categoryId>';
+						$yml .= '<delivery>false</delivery>';
+						$yml .= '<pickup>false</pickup>';
+						$yml .= '<store>true</store>';
+						$yml .= '<description>'.html_entity_decode($product['description']).'</description>';
+						$yml .= '<manufacturer_warranty>true</manufacturer_warranty>';
+						$yml .= '<barcode>'.$product['product_id'].'</barcode>';
+						if (count($product['attributes']) > 0):
+							foreach ($product['attributes'] as $attr):
+								$yml .= '<param id='.$attr['attribute_id'].'>'.$attr['text'].'</param>';
+							endforeach;
+						endif;
+						$yml .= '<weight>'.$product['weight'].'</weight>';
+						$yml .= '<dimensions>'.intval($product['price']).'/'.intval($product['price']).'</dimensions>';
+						$yml .= '<count>'.$product['quantity'].'</count>';
 					$yml .= '</offer>';
 				endforeach;
 			}
@@ -125,7 +158,6 @@ class ControllerExtensionModuleDeltayml extends Controller {
 		$yml .= '</offers>';
 		
 		$yml .= '</shop></yml_catalog>';
-		
 
 		$file = file_put_contents($filename,$yml);
 				
@@ -175,6 +207,8 @@ class ControllerExtensionModuleDeltayml extends Controller {
 		$data['filter_category'] = $category['category_id'];
 		$products = $this->model_extension_module_deltayml->getProducts($data);
 		foreach ($products as $j=>$product) {
+			$products[$j]['attributes'] = $this->model_extension_module_deltayml->getProductAttributes($product['product_id']);
+			$products[$j]['options'] = $this->model_extension_module_deltayml->getProductOptions($product['product_id']);
 			$products[$j]['href'] = $this->url->link('product/product', '?product_id=' . $product['product_id'] . $url);
 		}
 		$categories[$key]['products'] = $products;
