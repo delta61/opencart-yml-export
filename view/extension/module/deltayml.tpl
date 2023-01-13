@@ -34,8 +34,14 @@
 				<label class="control-label" for="savePath">Путь сохранения файла:</label>
 				<input type="text" class="form-control" name="savePath" />
 			</div>
+			<div class="col-12 form-group text-center">
+				<?if ($file_link):?>
+					Ссылка на файл: <a download href="<?php echo $file_link; ?>">Файл</a>
+				<?endif;?>
+				Страница показа: <a href="/yml.php">Страница</a>
+			</div>
 			<?php if (isset($entry_filepath)):?>
-				<label class="col-sm-2 control-label" for="input-status"><?php echo $entry_filepath ?></label>
+				<label class="col-sm-12 control-label text-center" for="input-status"><?php echo $entry_filepath ?></label>
 			<?php endif;?>
             <div class="col-sm-12">
 				<button type="submit" class="btn btn-success"><?php echo $entry_run ?></button>

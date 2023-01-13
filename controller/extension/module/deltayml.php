@@ -8,28 +8,23 @@ class ControllerExtensionModuleDeltayml extends Controller {
 	//ini_set('display_startup_errors', 1);
     // Загружаем "модель" модуля
 	$this->load->model('extension/module');
+	$this->load->model('extension/extension');
     $this->load->model('extension/module/deltayml');
 	$this->load->model('catalog/category');
 	$this->load->language('extension/module/category');
 	$this->load->model('setting/setting');
 	$this->load->model('catalog/product');
-	$categories = $this->model_extension_module_deltayml->getCategory();
-	$data['entry_filepath'] = '';
-	foreach ($categories as $key=>$category) {
-		$data['filter_category'] = $category['category_id'];
-		$products = $this->model_extension_module_deltayml->getProducts($data);
-		foreach ($products as $j=>$product) {
-			$products[$j]['attributes'] = $this->model_extension_module_deltayml->getProductAttributes($product['product_id']);
-			$products[$j]['options'] = $this->model_extension_module_deltayml->getProductOptions($product['product_id']);
-			$products[$j]['href'] = $this->url->link('catalog/product', '?product_id=' . $product['product_id']);
-		}
-		$categories[$key]['products'] = $products;
-	}
 	$data = array();
-	$data['categories'] = $categories;
+	
 	$filepath = '';
 	$data['error_warning'] = '';
+	$server = $this->config->get('config_url');
+
 	
+	$data['entry_filepath'] = $filepath;
+	$data['file_link'] = $server.$filepath;
+
+
     // Сохранение настроек модуля, когда пользователь нажал "Создать"
     if ($this->request->server['REQUEST_METHOD'] == 'POST') {
       // Вызываем метод "модели" для сохранения настроек
@@ -49,36 +44,71 @@ class ControllerExtensionModuleDeltayml extends Controller {
 		  // Выходим из настроек с выводом сообщения
 		  
 		  $this->session->data['success'] = 'Файл сформирован!';
-		  $this->response->redirect($this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&type=module', true));
 		  $data['entry_filepath'] = $filepath;
+		  $data['file_link'] = $server.$filepath;
+		  $data['module_deltayml_filepath'] = $this->model_extension_module_deltayml->LoadSettings();
+			// Загружаем языковой файл
+			$data += $this->load->language('extension/module/deltayml');
+			// Загружаем "хлебные крошки"
+			$data += $this->GetBreadCrumbs();
+		 
+			// Кнопки действий
+			$data['action'] = $this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&action=data_file&type=module', true);
+			$data['cancel'] = $this->url->link('marketplace/extension', 'token=' . $this->session->data['token'] .'&type=module', true);
+			// Загрузка шаблонов для шапки, колонки слева и футера
+			$data['header'] = $this->load->controller('common/header');
+			$data['column_left'] = $this->load->controller('common/column_left');
+			$data['footer'] = $this->load->controller('common/footer');
+			$data['text_edit'] = $this->language->get('text_edit');
+		    // Выводим в браузер шаблон
+			
+			$this->response->redirect($this->url->link('extension/module/deltayml','token=' . $this->session->data['token'] .'&action=data_file&type=module',true));
 	  } else {
 		$data['entry_filepath'] = '';
 		$this->session->data['error_warning'] = 'Ошибка формирования файла!';
 		$data['error_warning'] = 'Ошибка формирования файла!';
-		$this->response->redirect($this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&type=module', true));
+		// Загружаем настройки через метод "модели"
+
+		$data['entry_filepath'] = $this->model_extension_module_deltayml->LoadSettings();
+		$data['file_link'] = $server.$data['entry_filepath'];
+		// Загружаем языковой файл
+		$data += $this->load->language('extension/module/deltayml');
+		// Загружаем "хлебные крошки"
+		$data += $this->GetBreadCrumbs();
+	 
+		// Кнопки действий
+		$data['action'] = $this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&action=data_file', true);
+		$data['cancel'] = $this->url->link('marketplace/extension', 'token=' . $this->session->data['token'] .'&type=module', true);
+		// Загрузка шаблонов для шапки, колонки слева и футера
+		$data['header'] = $this->load->controller('common/header');
+		$data['column_left'] = $this->load->controller('common/column_left');
+		$data['footer'] = $this->load->controller('common/footer');
+		$data['text_edit'] = $this->language->get('text_edit');
+		// Выводим в браузер шаблон
+		
+		$this->response->redirect($this->url->link('extension/module/deltayml','token=' . $this->session->data['token']. '&type=module', true));
 	  }
+	  
     }
+	// Загружаем настройки через метод "модели"
+	
+	$data['entry_filepath'] = $this->model_extension_module_deltayml->LoadSettings();
+	$data['file_link'] = $server.$data['entry_filepath'];
+	// Загружаем языковой файл
+	$data += $this->load->language('extension/module/deltayml');
+	// Загружаем "хлебные крошки"
+	$data += $this->GetBreadCrumbs();
  
-    // Загружаем настройки через метод "модели"
-
-    $data['module_deltayml_filepath'] = $this->model_extension_module_deltayml->LoadSettings();
-    // Загружаем языковой файл
-    $data += $this->load->language('extension/module/deltayml');
-    // Загружаем "хлебные крошки"
-    $data += $this->GetBreadCrumbs();
- 
-    // Кнопки действий
-    $data['action'] = $this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&action=data_file', true);
-    $data['cancel'] = $this->url->link('marketplace/extension', 'token=' . $this->session->data['token'] .'&type=module', true);
-    // Загрузка шаблонов для шапки, колонки слева и футера
-    $data['header'] = $this->load->controller('common/header');
-    $data['column_left'] = $this->load->controller('common/column_left');
-    $data['footer'] = $this->load->controller('common/footer');
+	// Кнопки действий
+	$data['action'] = $this->url->link('extension/module/deltayml', 'token=' . $this->session->data['token'] .'&action=data_file', true);
+	$data['cancel'] = $this->url->link('marketplace/extension', 'token=' . $this->session->data['token'] .'&type=module', true);
+	// Загрузка шаблонов для шапки, колонки слева и футера
+	$data['header'] = $this->load->controller('common/header');
+	$data['column_left'] = $this->load->controller('common/column_left');
+	$data['footer'] = $this->load->controller('common/footer');
 	$data['text_edit'] = $this->language->get('text_edit');
-
-    // Выводим в браузер шаблон
-    $this->response->setOutput($this->load->view('extension/module/deltayml', $data));
- 
+	
+	$this->response->setOutput($this->load->view('extension/module/deltayml', $data));
   }
   
   // формирование yml
@@ -92,11 +122,11 @@ class ControllerExtensionModuleDeltayml extends Controller {
 	// Записываем данные в файл yml
 	if (isset($data_file) && !empty($data_file)) {
 		
-		//$this->load->model('setting/setting');
+		$this->load->model('setting/setting');
 		if ($filepath != '') {
-			$filename = $_SERVER['DOCUMENT_ROOT'].'/'.$filepath.'/YML-'.date("d-m-Y-H-i").'.yml';
+			$filename = $_SERVER['DOCUMENT_ROOT'].'/'.$filepath.'/YML.yml';
 		} else {
-			$filename = $_SERVER['DOCUMENT_ROOT'].'/system/storage/YML-'.date("d-m-Y-H-i").'.yml';
+			$filename = $_SERVER['DOCUMENT_ROOT'].'/yml/YML.yml';
 		}
 
 		
@@ -130,7 +160,7 @@ class ControllerExtensionModuleDeltayml extends Controller {
 				foreach($cat['products'] as $product):
 					$yml .= '<offer id="'.$product['product_id'].'">';
 						$yml .= '<name>'.$product['name'].'</name>';
-						$yml .= '<vendor>'.html_entity_decode($product['name']).'</vendor>';
+						$yml .= '<vendor>'.html_entity_decode($product['name'],ENT_XML1, 'UTF-8').'</vendor>';
 						$yml .= '<vendorCode>'.$product['model'].'</vendorCode>';
 						$yml .= '<url>'.$url_path.''.$product['keyword'].'</url>';
 						$yml .= '<price>'.intval($product['price']).'</price>';
@@ -139,7 +169,7 @@ class ControllerExtensionModuleDeltayml extends Controller {
 						$yml .= '<delivery>false</delivery>';
 						$yml .= '<pickup>false</pickup>';
 						$yml .= '<store>true</store>';
-						$yml .= '<description>'.html_entity_decode($product['description']).'</description>';
+						$yml .= '<description>'.html_entity_decode($product['description'],ENT_XML1, 'UTF-8').'</description>';
 						$yml .= '<manufacturer_warranty>true</manufacturer_warranty>';
 						$yml .= '<barcode>'.$product['product_id'].'</barcode>';
 						if (count($product['attributes']) > 0):
@@ -162,12 +192,16 @@ class ControllerExtensionModuleDeltayml extends Controller {
 		$file = file_put_contents($filename,$yml);
 				
 		if ($file) {
-			$filepath = $file;
+			if ($filepath != '') {
+				$filename = $_SERVER['DOCUMENT_ROOT'].'/'.$filepath.'/YML.yml';
+			} else {
+				$filename = $_SERVER['DOCUMENT_ROOT'].'/yml/YML.yml';
+			}
 		}
 		
 	} 
 	
-	return $filepath;
+	return $filename;
   }
  
   // Хлебные крошки
